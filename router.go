@@ -20,24 +20,32 @@ func newRouter() *router {
 
 // Only one * is allowed
 func parsePattern(pattern string) []string {
-	vs := strings.Split(pattern, "/")
-
 	parts := make([]string, 0)
-	for _, item := range vs {
-		if item != "" {
+	start := 0
+	for i := 0; i < len(pattern); i++ {
+		if pattern[i] == '/' && i == start {
+			start = i + 1
+			continue
+		}
+		if pattern[i] == '/' && i > start {
+			item := pattern[start:i]
 			parts = append(parts, item)
 			if item[0] == '*' {
 				break
 			}
+			start = i + 1
 		}
+	}
+	if start < len(pattern) {
+		parts = append(parts, pattern[start:])
 	}
 	return parts
 }
 
 func (r *router) addRoute(method string, pattern string, handler HandlerFunc) {
-	log.Printf("Route %4s - %s", method, pattern)
 	parts := parsePattern(pattern)
-
+	pattern = "/" + strings.Join(parts, "/")
+	log.Printf("[Route] %4s - %s", method, pattern)
 	if _, has := r.roots[method]; !has {
 		r.roots[method] = &node{}
 	}

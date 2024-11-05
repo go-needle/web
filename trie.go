@@ -1,14 +1,16 @@
 package web
 
 import (
-	"strings"
+	"fmt"
+	"log"
 )
 
 type node struct {
-	pattern      string
-	part         string
-	children     map[string]*node
-	wildChildren []*node
+	pattern   string
+	isUse     bool
+	children  map[string]*node
+	wildChild *node
+	isStop    bool // stop at '*'
 }
 
 // The first successfully matched node for insertion
@@ -16,8 +18,8 @@ func (n *node) matchChild(part string) *node {
 	if _, has := n.children[part]; has {
 		return n.children[part]
 	}
-	if len(n.wildChildren) > 0 {
-		return n.wildChildren[0]
+	if n.wildChild != nil {
+		return n.wildChild
 	}
 	return nil
 }
@@ -28,21 +30,34 @@ func (n *node) matchChildren(part string) []*node {
 	if _, has := n.children[part]; has {
 		nodes = append(nodes, n.children[part])
 	}
-	nodes = append(nodes, n.wildChildren...)
+	if n.wildChild != nil {
+		nodes = append(nodes, n.wildChild)
+	}
 	return nodes
 }
 
 func (n *node) insert(pattern string, parts []string, height int) {
-	if len(parts) == height {
+	if len(parts) == height || n.isStop {
+		isSame := n.pattern == pattern
+		if n.isUse && !isSame {
+			panic(fmt.Errorf("Find the route \"%s\" is in conflict with \"%s\". It may not be safe. ", n.pattern, pattern))
+		}
+		if n.isUse {
+			log.Printf("[Warning] the route \"%s\" is covered", n.pattern)
+		}
 		n.pattern = pattern
+		n.isUse = true
 		return
 	}
 	part := parts[height]
 	child := n.matchChild(part)
 	if child == nil {
-		child = &node{part: part}
-		if strings.HasPrefix(part, ":") || strings.HasPrefix(part, "*") {
-			n.wildChildren = append(n.wildChildren, child)
+		child = &node{}
+		if part[0] == ':' {
+			n.wildChild = child
+		} else if part[0] == '*' {
+			child.isStop = true
+			n.wildChild = child
 		} else {
 			if n.children == nil {
 				n.children = make(map[string]*node)
@@ -54,8 +69,8 @@ func (n *node) insert(pattern string, parts []string, height int) {
 }
 
 func (n *node) search(parts []string, height int) *node {
-	if len(parts) == height || strings.HasPrefix(n.part, "*") {
-		if n.pattern == "" {
+	if len(parts) == height || n.isStop {
+		if !n.isUse {
 			return nil
 		}
 		return n
