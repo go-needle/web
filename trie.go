@@ -18,7 +18,7 @@ func newNode(part string) *node {
 	return &node{nil, part, false, map[string]*node{}, nil, false}
 }
 
-// The successfully matched node
+// The successfully matched node for insertion
 func (n *node) matchChild(part string) *node {
 	if _, has := n.children[part]; has {
 		return n.children[part]
@@ -27,6 +27,18 @@ func (n *node) matchChild(part string) *node {
 		return n.wildChild
 	}
 	return nil
+}
+
+// All successfully matched nodes are used to find
+func (n *node) matchChildren(part string) []*node {
+	nodes := make([]*node, 0, 2)
+	if _, has := n.children[part]; has {
+		nodes = append(nodes, n.children[part])
+	}
+	if n.wildChild != nil {
+		nodes = append(nodes, n.wildChild)
+	}
+	return nodes
 }
 
 type trieTree struct {
@@ -50,16 +62,20 @@ func (t *trieTree) insert(parts []string, handlerFunc HandlerFunc) {
 		} else if part[0] == '*' {
 			next.isStop = true
 			cur.wildChild = next
-			break
 		} else {
 			cur.children[part] = next
 		}
 		nodePath = append(nodePath, next.part)
+		if cur.wildChild != nil && cur.wildChild.part[0] == '*' && len(cur.children) != 0 {
+			panic(fmt.Errorf("A conflict has occurred at route \"/%s\"", strings.Join(parts, "/")))
+		}
 		cur = next
+		if cur.isStop {
+			break
+		}
 	}
 	if cur.isUse {
-		pattern, oldPattern := strings.Join(parts, "/"), strings.Join(nodePath, "/")
-		panic(fmt.Errorf("Find the route \"%s\" is in conflict with \"%s\". It may not be safe. ", oldPattern, pattern))
+		panic(fmt.Errorf("A conflict has occurred at route \"/%s\"", strings.Join(parts, "/")))
 	}
 	cur.handle = handlerFunc
 	cur.isUse = true
@@ -69,18 +85,21 @@ func (t *trieTree) search(parts []string) (*node, map[string]string) {
 	cur := t.root
 	params := make(map[string]string)
 	for i, part := range parts {
-		if cur.isStop {
-			params[cur.part[1:]] = strings.Join(parts[i-1:], "/")
-			break
-		}
 		next := cur.matchChild(part)
 		if next == nil {
 			return nil, nil
 		}
 		if len(next.part) > 0 && next.part[0] == ':' {
-			params[cur.part[1:]] = part
+			params[next.part[1:]] = part
 		}
 		cur = next
+		if cur.isStop {
+			params[cur.part[1:]] = strings.Join(parts[i-1:], "/")
+			break
+		}
+	}
+	if !cur.isUse {
+		return nil, nil
 	}
 	return cur, params
 }
