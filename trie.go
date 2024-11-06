@@ -7,15 +7,10 @@ import (
 
 type node struct {
 	handle    HandlerFunc
-	part      string
-	isUse     bool
 	children  map[string]*node
-	wildChild *node //  check ':'
-	isStop    bool  // stop at '*'
-}
-
-func newNode(part string) *node {
-	return &node{nil, part, false, map[string]*node{}, nil, false}
+	jumpChild *node //  ':'
+	stopChild *node // '*'
+	keys      map[string]int
 }
 
 // The successfully matched node for insertion
@@ -23,8 +18,11 @@ func (n *node) matchChild(part string) *node {
 	if _, has := n.children[part]; has {
 		return n.children[part]
 	}
-	if n.wildChild != nil {
-		return n.wildChild
+	if n.jumpChild != nil {
+		return n.jumpChild
+	}
+	if n.stopChild != nil {
+		return n.stopChild
 	}
 	return nil
 }
@@ -35,8 +33,11 @@ func (n *node) matchChildren(part string) []*node {
 	if _, has := n.children[part]; has {
 		nodes = append(nodes, n.children[part])
 	}
-	if n.wildChild != nil {
-		nodes = append(nodes, n.wildChild)
+	if n.jumpChild != nil {
+		nodes = append(nodes, n.jumpChild)
+	}
+	if n.stopChild != nil {
+		nodes = append(nodes, n.stopChild)
 	}
 	return nodes
 }
@@ -46,39 +47,42 @@ type trieTree struct {
 }
 
 func newTrieTree() *trieTree {
-	return &trieTree{newNode("")}
+	return &trieTree{&node{}}
 }
 
 func (t *trieTree) insert(parts []string, handlerFunc HandlerFunc) {
 	cur := t.root
-	var nodePath []string
-	for _, part := range parts {
+	keys := make(map[string]int)
+	for i, part := range parts {
 		next := cur.matchChild(part)
 		if next == nil {
-			next = newNode(part)
+			next = &node{}
+		}
+		if (part[0] == ':' || part[0] == '*') && len(part) == 1 {
+			panic(fmt.Errorf("the routing path \"%s\" cannot contain nodes with only \"*\" or \":\"", strings.Join(parts, "/")))
 		}
 		if part[0] == ':' {
-			cur.wildChild = next
+			keys[part[1:]] = i
+			cur.jumpChild = next
 		} else if part[0] == '*' {
-			next.isStop = true
-			cur.wildChild = next
+			cur.stopChild = next
 		} else {
 			cur.children[part] = next
 		}
-		nodePath = append(nodePath, next.part)
-		if cur.wildChild != nil && cur.wildChild.part[0] == '*' && len(cur.children) != 0 {
-			panic(fmt.Errorf("A conflict has occurred at route \"/%s\"", strings.Join(parts, "/")))
+		if cur.stopChild != nil && (len(cur.children) != 0 || cur.jumpChild != nil) {
+			panic(fmt.Errorf("a conflict has occurred at route \"/%s\"", strings.Join(parts, "/")))
 		}
-		cur = next
-		if cur.isStop {
+		if cur.stopChild != nil {
+			cur = next
 			break
 		}
+		cur = next
 	}
-	if cur.isUse {
-		panic(fmt.Errorf("A conflict has occurred at route \"/%s\"", strings.Join(parts, "/")))
+	if cur.handle != nil {
+		panic(fmt.Errorf("a conflict has occurred at route \"/%s\"", strings.Join(parts, "/")))
 	}
 	cur.handle = handlerFunc
-	cur.isUse = true
+	cur.keys = keys
 }
 
 func (t *trieTree) search(parts []string) (*node, map[string]string) {
