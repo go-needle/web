@@ -42,12 +42,11 @@ func parsePattern(pattern string) []string {
 
 func (r *router) addRoute(method string, pattern string, handler HandlerFunc) {
 	parts := parsePattern(pattern)
-	pattern = "/" + strings.Join(parts, "/")
 	if _, has := r.trees[method]; !has {
 		r.trees[method] = newTrieTree()
 	}
 	r.trees[method].insert(parts, handler)
-	log.Printf("[Route] %4s - %s", method, pattern)
+	log.Printf("[Route] %4s - /%s", method, strings.Join(parts, "/"))
 }
 
 func (r *router) getRoute(method string, path string) (*node, map[string]string) {

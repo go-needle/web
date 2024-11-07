@@ -1,6 +1,8 @@
 package web
 
 import (
+	"fmt"
+	"net"
 	"net/http"
 )
 
@@ -12,13 +14,18 @@ type App struct {
 	router *router
 }
 
-type Engine struct {
-	app *App
+func newApp() *App {
+	fmt.Println("🪡Welcome to use go-needle-web\n🪡Github: https://github.com/go-needle/web")
+	return &App{router: newRouter()}
 }
 
 // New is the constructor of web.App
 func New() *App {
-	return &App{router: newRouter()}
+	return newApp()
+}
+
+type Engine struct {
+	app *App
 }
 
 func (app *App) addRoute(method string, pattern string, handler HandlerFunc) {
@@ -50,9 +57,30 @@ func (app *App) DELETE(pattern string, handler HandlerFunc) {
 	app.addRoute("DELETE", pattern, handler)
 }
 
+func getLocalIP() (string, error) {
+	adders, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+
+	for _, address := range adders {
+		// 检查ip net.IPNet类型
+		if inet, ok := address.(*net.IPNet); ok && !inet.IP.IsLoopback() {
+			if inet.IP.To4() != nil {
+				return inet.IP.String(), nil
+			}
+		}
+	}
+	return "", fmt.Errorf("无可用IP地址")
+}
+
 // Run defines the method to start a http server
 func (app *App) Run(addr string) {
-	panic(http.ListenAndServe(addr, &Engine{app}))
+	go fmt.Println("🪡 The web server is running at " + addr)
+	err := http.ListenAndServe(addr, &Engine{app})
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {

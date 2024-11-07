@@ -1,3 +1,3 @@
 module github.com/go-needle/web
 
-go 1.18
+go 1.21
