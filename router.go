@@ -1,13 +1,16 @@
 package web
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type router struct {
 	trees map[string]*trieTree
+	total int
 }
 
 func newRouter() *router {
@@ -46,7 +49,10 @@ func (r *router) addRoute(method string, pattern string, handler HandlerFunc) {
 		r.trees[method] = newTrieTree()
 	}
 	r.trees[method].insert(parts, handler)
-	log.Printf("[Route] %4s - /%s", method, strings.Join(parts, "/"))
+	log.Printf("[Add route] %4s - /%s\n", method, strings.Join(parts, "/"))
+	time.Sleep(time.Millisecond)
+	fmt.Print("\033[1A\033[2K")
+	r.total++
 }
 
 func (r *router) getRoute(method string, path string) (*node, map[string]string) {

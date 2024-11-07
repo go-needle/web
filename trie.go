@@ -18,7 +18,7 @@ func newNode() *node {
 	return &node{children: make(map[string]*node)}
 }
 
-// The successfully matched node for insertion
+// The successfully matched node
 func (n *node) matchChild(part string) *node {
 	if _, has := n.children[part]; has {
 		return n.children[part]
@@ -32,25 +32,14 @@ func (n *node) matchChild(part string) *node {
 	return nil
 }
 
-// All successfully matched nodes are used to find
-func (n *node) matchChildren(part string) []*node {
-	nodes := make([]*node, 0, 3)
-	if _, has := n.children[part]; has {
-		nodes = append(nodes, n.children[part])
-	}
-	if n.jumpChild != nil {
-		nodes = append(nodes, n.jumpChild)
-	}
-	return nodes
-}
-
 type trieTree struct {
-	root            *node
-	heightNodeCount map[int]int
+	root              *node
+	heightNodeCount   map[int]int
+	maxDenseNodeCount int
 }
 
 func newTrieTree() *trieTree {
-	return &trieTree{newNode(), make(map[int]int)}
+	return &trieTree{newNode(), make(map[int]int), 1}
 }
 
 func (t *trieTree) insert(parts []string, handlerFunc HandlerFunc) {
@@ -92,38 +81,47 @@ func (t *trieTree) insert(parts []string, handlerFunc HandlerFunc) {
 	cur.handle = handlerFunc
 	cur.keys = keys
 	t.heightNodeCount[height]++
+	t.maxDenseNodeCount = max(t.maxDenseNodeCount, t.heightNodeCount[height])
 }
 
 func (t *trieTree) search(parts []string) (*node, map[string]string) {
-	queue := []*node{t.root}
-	cur := []*node{t.root}
+	queue := make([]*node, 1, t.maxDenseNodeCount<<1)
+	queue[0] = t.root
+	cur := make([]*node, 1, t.maxDenseNodeCount)
+	cur[0] = t.root
 	height := 0
 	var stopNodes []*node
 	for len(queue) > 0 && height < len(parts) {
-		tmp := make([]*node, 0, t.heightNodeCount[height])
+		cur = cur[:0]
 		part := parts[height]
 		for len(queue) > 0 {
 			head := queue[0]
 			if head.stopChild != nil {
 				stopNodes = append(stopNodes, head.stopChild)
 			}
-			nxt := head.matchChildren(part)
+			if _, has := head.children[part]; has {
+				cur = append(cur, head.children[part])
+			}
+			if head.jumpChild != nil {
+				cur = append(cur, head.jumpChild)
+			}
 			queue = queue[1:]
-			tmp = append(tmp, nxt...)
 		}
-		queue = append(queue, tmp...)
-		cur = tmp
 		height++
+		if height >= len(parts) {
+			break
+		}
+		queue = append(queue, cur...)
 	}
 
-	params := make(map[string]string)
 	var nd *node
 	isStop := false
-
-	for _, n := range cur {
-		if n.handle != nil {
-			nd = n
-			break
+	if len(parts) == height {
+		for _, n := range cur {
+			if n.handle != nil {
+				nd = n
+				break
+			}
 		}
 	}
 
@@ -140,6 +138,8 @@ func (t *trieTree) search(parts []string) (*node, map[string]string) {
 	if nd == nil {
 		return nil, nil
 	}
+
+	params := make(map[string]string, len(nd.keys))
 
 	if isStop {
 		maxIdx := -1
