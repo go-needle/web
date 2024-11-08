@@ -42,7 +42,7 @@ func newTrieTree() *trieTree {
 	return &trieTree{newNode(), make(map[int]int), 1}
 }
 
-func (t *trieTree) insert(parts []string, handlerFunc HandlerFunc) {
+func (t *trieTree) insert(parts []string, handlerFunc HandlerFunc) int {
 	cur := t.root
 	keys := make(map[int]string)
 	height := 0
@@ -74,14 +74,21 @@ func (t *trieTree) insert(parts []string, handlerFunc HandlerFunc) {
 		}
 		cur = next
 	}
+	isAdd := true
 	if cur.handle != nil {
 		t.heightNodeCount[height]--
+		isAdd = false
 		log.Printf("[Warning] A route coverage occurred in \"/%s\"", strings.Join(parts, "/"))
 	}
 	cur.handle = handlerFunc
 	cur.keys = keys
 	t.heightNodeCount[height]++
 	t.maxDenseNodeCount = max(t.maxDenseNodeCount, t.heightNodeCount[height])
+	if isAdd {
+		return 1
+	} else {
+		return 0
+	}
 }
 
 func (t *trieTree) search(parts []string) (*node, map[string]string) {

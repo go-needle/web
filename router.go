@@ -1,21 +1,22 @@
 package web
 
 import (
-	"fmt"
-	"log"
 	"net/http"
-	"strings"
-	"time"
 )
 
+type store interface {
+	insert(parts []string, handlerFunc HandlerFunc) int
+	search(parts []string) (*node, map[string]string)
+}
+
 type router struct {
-	trees map[string]*trieTree
+	store map[string]store
 	total int
 }
 
 func newRouter() *router {
 	return &router{
-		trees: make(map[string]*trieTree),
+		store: make(map[string]store),
 	}
 }
 
@@ -45,19 +46,15 @@ func parsePattern(pattern string) []string {
 
 func (r *router) addRoute(method string, pattern string, handler HandlerFunc) {
 	parts := parsePattern(pattern)
-	if _, has := r.trees[method]; !has {
-		r.trees[method] = newTrieTree()
+	if _, has := r.store[method]; !has {
+		r.store[method] = newTrieTree()
 	}
-	r.trees[method].insert(parts, handler)
-	log.Printf("[Add route] %4s - /%s\n", method, strings.Join(parts, "/"))
-	time.Sleep(time.Millisecond)
-	fmt.Print("\033[1A\033[2K")
-	r.total++
+	r.total += r.store[method].insert(parts, handler)
 }
 
 func (r *router) getRoute(method string, path string) (*node, map[string]string) {
 	searchParts := parsePattern(path)
-	tree, ok := r.trees[method]
+	tree, ok := r.store[method]
 	if !ok {
 		return nil, nil
 	}
@@ -66,10 +63,14 @@ func (r *router) getRoute(method string, path string) (*node, map[string]string)
 
 func (r *router) handle(c *Context) {
 	n, params := r.getRoute(c.Method, c.Path)
+
 	if n != nil {
 		c.Params = params
-		n.handle(c)
+		c.handlers = append(c.handlers, n.handle)
 	} else {
-		c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+		c.handlers = append(c.handlers, func(c *Context) {
+			c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+		})
 	}
+	c.Next()
 }
