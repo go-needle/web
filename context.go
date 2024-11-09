@@ -18,6 +18,8 @@ type Context struct {
 	Params map[string]string
 	// response info
 	StatusCode int
+	// extra info
+	Extra map[string]any
 	// middleware
 	handlers []HandlerFunc
 	index    int
