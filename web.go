@@ -24,6 +24,12 @@ type RouterGroup struct {
 // Group is defined to create a new RouterGroup
 // remember all groups share the same Engine instance
 func (group *RouterGroup) Group(prefix string) *RouterGroup {
+	if len(prefix) == 1 {
+		panic("the length of prefix must > 0")
+	}
+	if prefix[0] != '/' {
+		prefix = "/" + prefix
+	}
 	server := group.server
 	newGroup := &RouterGroup{
 		prefix: group.prefix + prefix,
@@ -40,33 +46,40 @@ func (group *RouterGroup) addRoute(method string, comp string, handler HandlerFu
 }
 
 // Use is defined to add middleware to the group
-func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
+func (group *RouterGroup) Use(middlewares ...HandlerFunc) *RouterGroup {
 	group.middlewares = append(group.middlewares, middlewares...)
+	return group
 }
 
 // REQUEST defines your method to request
 func (group *RouterGroup) REQUEST(method, pattern string, handler HandlerFunc) {
+	if len(pattern) == 1 {
+		panic("the length of pattern must > 0")
+	}
+	if pattern[0] != '/' {
+		pattern = "/" + pattern
+	}
 	group.addRoute(method, pattern, handler)
 }
 
 // GET defines the method to add GET request
 func (group *RouterGroup) GET(pattern string, handler HandlerFunc) {
-	group.addRoute("GET", pattern, handler)
+	group.REQUEST("GET", pattern, handler)
 }
 
 // POST defines the method to add POST request
 func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
-	group.addRoute("POST", pattern, handler)
+	group.REQUEST("POST", pattern, handler)
 }
 
 // PUT defines the method to add PUT request
 func (group *RouterGroup) PUT(pattern string, handler HandlerFunc) {
-	group.addRoute("PUT", pattern, handler)
+	group.REQUEST("PUT", pattern, handler)
 }
 
 // DELETE defines the method to add DELETE request
 func (group *RouterGroup) DELETE(pattern string, handler HandlerFunc) {
-	group.addRoute("DELETE", pattern, handler)
+	group.REQUEST("DELETE", pattern, handler)
 }
 
 // create static handler
@@ -85,7 +98,7 @@ func (group *RouterGroup) createStaticHandler(relativePath string, fs http.FileS
 	}
 }
 
-// serve static files
+// mapping local static resources
 func (group *RouterGroup) Static(relativePath string, root string) {
 	handler := group.createStaticHandler(relativePath, http.Dir(root))
 	urlPattern := path.Join(relativePath, "/*filepath")
@@ -156,7 +169,7 @@ func welcome(port string, router int) {
 	fmt.Println("🪡 Available router total: " + strconv.Itoa(router))
 	ip, err := getInternalIP()
 	if err == nil {
-		fmt.Println("🪡 Address: " + ip + ":" + port)
+		fmt.Println("🪡 IP address: " + ip)
 	}
 	fmt.Println("🪡 The web server is listening at port " + port)
 }
