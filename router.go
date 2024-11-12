@@ -1,26 +1,21 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 )
 
-type store interface {
-	insert(parts []string, handlerFunc HandlerFunc) int
-	search(parts []string) (*node, map[string]string)
-}
-
 type router struct {
-	store map[string]store
+	tree  map[string]*trieTreeR
 	total int
 }
 
 func newRouter() *router {
 	return &router{
-		store: make(map[string]store),
+		tree: make(map[string]*trieTreeR),
 	}
 }
 
-// Only one * is allowed
 func parsePattern(pattern string) []string {
 	parts := make([]string, 0)
 	start := 0
@@ -46,15 +41,15 @@ func parsePattern(pattern string) []string {
 
 func (r *router) addRoute(method string, pattern string, handler HandlerFunc) {
 	parts := parsePattern(pattern)
-	if _, has := r.store[method]; !has {
-		r.store[method] = newTrieTree()
+	if _, has := r.tree[method]; !has {
+		r.tree[method] = newTrieTreeR()
 	}
-	r.total += r.store[method].insert(parts, handler)
+	r.total += r.tree[method].insert(parts, handler)
 }
 
-func (r *router) getRoute(method string, path string) (*node, map[string]string) {
+func (r *router) getRoute(method string, path string) (*nodeR, map[string]string) {
 	searchParts := parsePattern(path)
-	tree, ok := r.store[method]
+	tree, ok := r.tree[method]
 	if !ok {
 		return nil, nil
 	}
@@ -69,7 +64,7 @@ func (r *router) handle(c *Context) {
 		c.handlers = append(c.handlers, n.handle)
 	} else {
 		c.handlers = append(c.handlers, func(c *Context) {
-			c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+			c.Fail(http.StatusNotFound, fmt.Sprintf("404 NOT FOUND: %s", c.Path))
 		})
 	}
 	c.Next()

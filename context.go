@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-type H map[string]interface{}
+type H map[string]any
 
 type Context struct {
 	// origin objects
@@ -20,7 +20,7 @@ type Context struct {
 	StatusCode int
 	// extra info
 	Extra map[string]any
-	// middleware
+	// middlewares and route
 	handlers []HandlerFunc
 	index    int
 	// server pointer
@@ -37,6 +37,7 @@ func newContext(w http.ResponseWriter, req *http.Request) *Context {
 	}
 }
 
+// Next is used in middleware, it means executing the next middleware or route
 func (c *Context) Next() {
 	c.index++
 	s := len(c.handlers)
@@ -80,7 +81,7 @@ func (c *Context) JSON(code int, obj any) {
 	c.Status(code)
 	encoder := json.NewEncoder(c.Writer)
 	if err := encoder.Encode(obj); err != nil {
-		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		http.Error(c.Writer, err.Error(), 500)
 	}
 }
 

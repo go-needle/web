@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-// print stack trace for debug
 func trace(message string) string {
 	var pcs [32]uintptr
 	n := runtime.Callers(3, pcs[:]) // skip first 3 caller
@@ -23,6 +22,7 @@ func trace(message string) string {
 	return str.String()
 }
 
+// Recovery is a middleware which defines to prevent panic from causing HTTP service termination
 func Recovery() HandlerFunc {
 	return func(c *Context) {
 		defer func() {

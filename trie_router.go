@@ -6,20 +6,19 @@ import (
 	"strings"
 )
 
-type node struct {
+type nodeR struct {
 	handle    HandlerFunc
-	children  map[string]*node
-	jumpChild *node //  ':'
-	stopChild *node // '*'
+	children  map[string]*nodeR
+	jumpChild *nodeR //  ':'
+	stopChild *nodeR // '*'
 	keys      map[int]string
 }
 
-func newNode() *node {
-	return &node{children: make(map[string]*node)}
+func newNodeR() *nodeR {
+	return &nodeR{children: make(map[string]*nodeR)}
 }
 
-// The successfully matched node
-func (n *node) matchChild(part string) *node {
+func (n *nodeR) matchChild(part string) *nodeR {
 	if _, has := n.children[part]; has {
 		return n.children[part]
 	}
@@ -32,17 +31,17 @@ func (n *node) matchChild(part string) *node {
 	return nil
 }
 
-type trieTree struct {
-	root              *node
+type trieTreeR struct {
+	root              *nodeR
 	heightNodeCount   map[int]int
 	maxDenseNodeCount int
 }
 
-func newTrieTree() *trieTree {
-	return &trieTree{newNode(), make(map[int]int), 1}
+func newTrieTreeR() *trieTreeR {
+	return &trieTreeR{newNodeR(), make(map[int]int), 1}
 }
 
-func (t *trieTree) insert(parts []string, handlerFunc HandlerFunc) int {
+func (t *trieTreeR) insert(parts []string, handlerFunc HandlerFunc) int {
 	cur := t.root
 	keys := make(map[int]string)
 	height := 0
@@ -55,7 +54,7 @@ func (t *trieTree) insert(parts []string, handlerFunc HandlerFunc) int {
 		if part[0] == '*' {
 			keys[i] = part[1:]
 			if next == nil {
-				next = newNode()
+				next = newNodeR()
 				cur.stopChild = next
 				cur = next
 				break
@@ -63,12 +62,12 @@ func (t *trieTree) insert(parts []string, handlerFunc HandlerFunc) int {
 		} else if part[0] == ':' {
 			keys[i] = part[1:]
 			if next == nil || cur.stopChild == next {
-				next = newNode()
+				next = newNodeR()
 				cur.jumpChild = next
 			}
 		} else {
 			if next == nil || cur.jumpChild == next || cur.stopChild == next {
-				next = newNode()
+				next = newNodeR()
 				cur.children[part] = next
 			}
 		}
@@ -91,13 +90,13 @@ func (t *trieTree) insert(parts []string, handlerFunc HandlerFunc) int {
 	}
 }
 
-func (t *trieTree) search(parts []string) (*node, map[string]string) {
-	queue := make([]*node, 1, t.maxDenseNodeCount<<1)
+func (t *trieTreeR) search(parts []string) (*nodeR, map[string]string) {
+	queue := make([]*nodeR, 1, t.maxDenseNodeCount<<1)
 	queue[0] = t.root
-	cur := make([]*node, 1, t.maxDenseNodeCount)
+	cur := make([]*nodeR, 1, t.maxDenseNodeCount)
 	cur[0] = t.root
 	height := 0
-	var stopNodes []*node
+	var stopNodes []*nodeR
 	for len(queue) > 0 && height < len(parts) {
 		cur = cur[:0]
 		part := parts[height]
@@ -121,7 +120,7 @@ func (t *trieTree) search(parts []string) (*node, map[string]string) {
 		queue = append(queue, cur...)
 	}
 
-	var nd *node
+	var nd *nodeR
 	isStop := false
 	if len(parts) == height {
 		for _, n := range cur {

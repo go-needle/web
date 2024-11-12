@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Logger is a middleware which defines to log every http request
 func Logger() HandlerFunc {
 	return func(c *Context) {
 		// Start timer

@@ -7,12 +7,45 @@ import (
 	"net/http"
 	"path"
 	"strconv"
-	"strings"
 	"time"
 )
 
 // HandlerFunc defines the request handler used by web
 type HandlerFunc func(*Context)
+
+type Listener interface {
+	Method() string
+	Pattern() string
+	Handle() HandlerFunc
+}
+
+type GET struct{}
+
+func (*GET) Method() string { return "GET" }
+
+type POST struct{}
+
+func (*POST) Method() string { return "POST" }
+
+type DELETE struct{}
+
+func (*DELETE) Method() string { return "DELETE" }
+
+type PUT struct{}
+
+func (*PUT) Method() string { return "PUT" }
+
+type PATCH struct{}
+
+func (*PATCH) Method() string { return "PATCH" }
+
+type OPTIONS struct{}
+
+func (*OPTIONS) Method() string { return "OPTIONS" }
+
+type HEAD struct{}
+
+func (*HEAD) Method() string { return "HEAD" }
 
 type RouterGroup struct {
 	prefix      string
@@ -31,12 +64,13 @@ func (group *RouterGroup) Group(prefix string) *RouterGroup {
 		prefix = "/" + prefix
 	}
 	server := group.server
+	groupPrefix := group.prefix + prefix
 	newGroup := &RouterGroup{
-		prefix: group.prefix + prefix,
+		prefix: groupPrefix,
 		parent: group,
 		server: server,
 	}
-	server.groups = append(server.groups, newGroup)
+	server.groups.insert(groupPrefix, newGroup)
 	return newGroup
 }
 
@@ -49,6 +83,13 @@ func (group *RouterGroup) addRoute(method string, comp string, handler HandlerFu
 func (group *RouterGroup) Use(middlewares ...HandlerFunc) *RouterGroup {
 	group.middlewares = append(group.middlewares, middlewares...)
 	return group
+}
+
+// Bind is defined to bind all listeners to the router
+func (group *RouterGroup) Bind(listeners ...Listener) {
+	for _, listener := range listeners {
+		group.REQUEST(listener.Method(), listener.Pattern(), listener.Handle())
+	}
 }
 
 // REQUEST defines your method to request
@@ -82,6 +123,21 @@ func (group *RouterGroup) DELETE(pattern string, handler HandlerFunc) {
 	group.REQUEST("DELETE", pattern, handler)
 }
 
+// PATCH defines the method to add PATCH request
+func (group *RouterGroup) PATCH(pattern string, handler HandlerFunc) {
+	group.REQUEST("PATCH", pattern, handler)
+}
+
+// OPTIONS defines the method to add OPTIONS request
+func (group *RouterGroup) OPTIONS(pattern string, handler HandlerFunc) {
+	group.REQUEST("OPTIONS", pattern, handler)
+}
+
+// HEAD defines the method to add HEAD request
+func (group *RouterGroup) HEAD(pattern string, handler HandlerFunc) {
+	group.REQUEST("HEAD", pattern, handler)
+}
+
 // create static handler
 func (group *RouterGroup) createStaticHandler(relativePath string, fs http.FileSystem) HandlerFunc {
 	absolutePath := path.Join(group.prefix, relativePath)
@@ -98,7 +154,7 @@ func (group *RouterGroup) createStaticHandler(relativePath string, fs http.FileS
 	}
 }
 
-// mapping local static resources
+// Static is defined to map local static resources
 func (group *RouterGroup) Static(relativePath string, root string) {
 	handler := group.createStaticHandler(relativePath, http.Dir(root))
 	urlPattern := path.Join(relativePath, "/*filepath")
@@ -109,7 +165,7 @@ func (group *RouterGroup) Static(relativePath string, root string) {
 type Server struct {
 	*RouterGroup
 	router        *router
-	groups        []*RouterGroup     // store all groups
+	groups        *trieTreeG         // store all groups
 	htmlTemplates *template.Template // for html render
 	funcMap       template.FuncMap   // for html render
 }
@@ -117,7 +173,7 @@ type Server struct {
 func newServer() *Server {
 	server := &Server{router: newRouter()}
 	server.RouterGroup = &RouterGroup{server: server}
-	server.groups = []*RouterGroup{server.RouterGroup}
+	server.groups = newTrieTreeG(server.RouterGroup)
 	return server
 }
 
@@ -126,7 +182,7 @@ func New() *Server {
 	return newServer()
 }
 
-// Default is the constructor of web.Server with some default middlewares
+// Default is the constructor of web.Server with Recovery and Logger
 func Default() *Server {
 	server := newServer()
 	server.Use(Recovery(), Logger())
@@ -185,14 +241,9 @@ func (server *Server) Run(port int) {
 }
 
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	var middlewares []HandlerFunc
-	for _, group := range engine.server.groups {
-		if strings.HasPrefix(req.URL.Path, group.prefix) {
-			middlewares = append(middlewares, group.middlewares...)
-		}
-	}
+	middlewaresFind := engine.server.groups.search(req.URL.Path)
 	c := newContext(w, req)
-	c.handlers = middlewares
+	c.handlers = middlewaresFind
 	c.server = engine.server
 	engine.server.router.handle(c)
 }

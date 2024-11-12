@@ -1,2 +1,63 @@
 # web
 a web framework
+
+```golang
+package main
+
+import (
+	"fmt"
+	"github.com/go-needle/web"
+)
+
+// Define middleware
+func middleware1() web.HandlerFunc {
+	return func(ctx *web.Context) {
+		fmt.Println("test1")
+		ctx.Next()
+		fmt.Println("test1")
+	}
+}
+
+// Define middleware
+func middleware2(ctx *web.Context) {
+	fmt.Println("test2")
+	ctx.Next()
+	fmt.Println("test2")
+}
+
+// You need to implement the web.Listener interface
+type hello struct{ web.POST } // In this way, you will not need to implement method methods
+
+func (h *hello) Pattern() string { return "/hello1" }
+func (h *hello) Handle() web.HandlerFunc {
+	return func(ctx *web.Context) {
+		ctx.JSON(200, web.H{"msg": "hello1"})
+	}
+}
+
+type response struct {
+	Msg string `json:"msg"`
+}
+
+func main() {
+	// new a client of http
+	s := web.Default()
+	{
+		// define the group and use middleware
+		g1 := s.Group("m1").Use(middleware1())
+		{
+			g2 := g1.Group("m2").Use(middleware2)
+			// bind the listener to work pattern in router
+			g2.Bind(&hello{}) //  work at POST /m1/m2/hello1
+			// also could use this way to add to router
+			g2.GET("/hello2", func(ctx *web.Context) {
+				ctx.JSON(200, &response{Msg: "hello2"})
+			}) // work at GET /m1/m2/hello2
+		}
+	}
+	// listen on the port
+	s.Run(9999)
+}
+
+```
+
