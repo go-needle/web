@@ -60,7 +60,7 @@ func (r *router) handle(c *Context) {
 	n, params := r.getRoute(c.Method, c.Path)
 
 	if n != nil {
-		c.Params = params
+		c.params = params
 		c.handlers = append(c.handlers, n.handle)
 	} else {
 		c.handlers = append(c.handlers, func(c *Context) {

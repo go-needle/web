@@ -1,6 +1,7 @@
 # web
 a web framework
 
+### quickly start
 ```golang
 package main
 
@@ -14,7 +15,7 @@ func middleware1() web.HandlerFunc {
 	return func(ctx *web.Context) {
 		fmt.Println("test1")
 		ctx.Next()
-		fmt.Println("test1")
+		fmt.Println("test4")
 	}
 }
 
@@ -22,7 +23,7 @@ func middleware1() web.HandlerFunc {
 func middleware2(ctx *web.Context) {
 	fmt.Println("test2")
 	ctx.Next()
-	fmt.Println("test2")
+	fmt.Println("test3")
 }
 
 // You need to implement the web.Listener interface
@@ -31,6 +32,8 @@ type hello struct{ web.POST } // In this way, you will not need to implement met
 func (h *hello) Pattern() string { return "/hello1" }
 func (h *hello) Handle() web.HandlerFunc {
 	return func(ctx *web.Context) {
+		num := ctx.FormData("num")
+		fmt.Println(num)
 		ctx.JSON(200, web.H{"msg": "hello1"})
 	}
 }
@@ -51,6 +54,7 @@ func main() {
 			g2.Bind(&hello{}) //  work at POST /m1/m2/hello1
 			// also could use this way to add to router
 			g2.GET("/hello2", func(ctx *web.Context) {
+				fmt.Println(ctx.Query("num"))
 				ctx.JSON(200, &response{Msg: "hello2"})
 			}) // work at GET /m1/m2/hello2
 		}
@@ -58,6 +62,5 @@ func main() {
 	// listen on the port
 	s.Run(9999)
 }
-
 ```
 
