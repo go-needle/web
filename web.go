@@ -209,7 +209,6 @@ func getInternalIP() (string, error) {
 	}
 
 	for _, address := range adders {
-		// 检查IP地址是否是定义在回环接口上的IPv4地址
 		if ip, ok := address.(*net.IPNet); ok && !ip.IP.IsLoopback() {
 			if ip.IP.To4() != nil {
 				return ip.IP.String(), nil
