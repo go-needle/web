@@ -83,7 +83,3 @@ func main() {
 	s.Run(9999)
 }
 ```
-
-## reference
-- [gee-web](https://github.com/geektutu/7days-golang/tree/master/gee-web)
-- [gin](https://github.com/gin-gonic/gin) 
