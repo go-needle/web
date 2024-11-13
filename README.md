@@ -5,7 +5,7 @@
 
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable-next-line MD036 -->
-a web lightweight framework for golang
+a lightweight web framework for golang
 <!-- prettier-ignore-end -->
 
 <img src="https://img.shields.io/badge/golang-1.21+-blue" alt="golang">
