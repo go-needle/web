@@ -126,7 +126,7 @@ func (c *Context) String(code int, format string, values ...any) {
 	c.SetHeader("Content-Type", "text/plain")
 	c.Status(code)
 	if _, err := c.Writer.Write([]byte(fmt.Sprintf(format, values...))); err != nil {
-		c.Fail(http.StatusInternalServerError, err.Error())
+		panic(err)
 	}
 }
 
@@ -135,14 +135,14 @@ func (c *Context) JSON(code int, obj any) {
 	c.Status(code)
 	encoder := json.NewEncoder(c.Writer)
 	if err := encoder.Encode(obj); err != nil {
-		http.Error(c.Writer, err.Error(), 500)
+		panic(err)
 	}
 }
 
 func (c *Context) Data(code int, data []byte) {
 	c.Status(code)
 	if _, err := c.Writer.Write(data); err != nil {
-		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		panic(err)
 	}
 }
 
@@ -150,7 +150,7 @@ func (c *Context) HTML(code int, name string, data interface{}) {
 	c.SetHeader("Content-Type", "text/html")
 	c.Status(code)
 	if err := c.server.htmlTemplates.ExecuteTemplate(c.Writer, name, data); err != nil {
-		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		panic(err)
 	}
 }
 

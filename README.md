@@ -1,7 +1,27 @@
-# web
-a web framework
+<!-- markdownlint-disable MD033 MD041 -->
+<div align="center">
 
-### quickly start
+# 🪡web
+
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable-next-line MD036 -->
+a web lightweight framework for golang
+<!-- prettier-ignore-end -->
+
+<img src="https://img.shields.io/badge/golang-1.21+-blue" alt="golang">
+</div>
+
+## installing
+Select the version to install
+
+`go get github.com/go-needle/web@version`
+
+If you have already get , you may need to update to the latest version
+
+`go get -u github.com/go-needle/web`
+
+
+## quickly start
 ```golang
 package main
 
@@ -27,7 +47,7 @@ func middleware2(ctx *web.Context) {
 }
 
 // You need to implement the web.Listener interface
-type hello struct{ web.POST } // In this way, you will not need to implement method methods
+type hello struct{ web.POST } // In this way, you will not need to implement the 'Method()'
 
 func (h *hello) Pattern() string { return "/hello1" }
 func (h *hello) Handle() web.HandlerFunc {
