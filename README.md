@@ -63,7 +63,7 @@ type response struct {
 }
 
 func main() {
-	// new a client of http
+	// new a server of http
 	s := web.Default()
 	{
 		// define the group and use middleware
