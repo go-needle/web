@@ -27,6 +27,8 @@ type Context struct {
 	index    int
 	// server pointer
 	server *Server
+	// response tag
+	isResponse bool
 }
 
 func newContext(w http.ResponseWriter, req *http.Request) *Context {
@@ -35,6 +37,7 @@ func newContext(w http.ResponseWriter, req *http.Request) *Context {
 		Method: req.Method,
 		Req:    req,
 		Writer: w,
+		extras: make(map[string]any),
 		index:  -1,
 	}
 }
@@ -60,6 +63,11 @@ func (c *Context) Abort() {
 	c.index = len(c.handlers)
 }
 
+// Abort is used in middleware, it means stopping the current middleware
+func (c *Context) isAbort() bool {
+	return c.index == len(c.handlers)
+}
+
 // Param is used to get the parameter at path.
 func (c *Context) Param(key string) string {
 	value, _ := c.params[key]
@@ -75,6 +83,10 @@ func (c *Context) Extra(key string) any {
 // SetExtra is used to set the info by user
 func (c *Context) SetExtra(key string, v any) {
 	c.extras[key] = v
+}
+
+func (c *Context) GetHeader(key string) string {
+	return c.Req.Header.Get(key)
 }
 
 func (c *Context) FormData(key string) string {
@@ -123,35 +135,51 @@ func (c *Context) SetHeader(key string, value string) {
 }
 
 func (c *Context) String(code int, format string, values ...any) {
+	if c.isResponse {
+		return
+	}
 	c.SetHeader("Content-Type", "text/plain")
 	c.Status(code)
 	if _, err := c.Writer.Write([]byte(fmt.Sprintf(format, values...))); err != nil {
 		panic(err)
 	}
+	c.isResponse = true
 }
 
 func (c *Context) JSON(code int, obj any) {
+	if c.isResponse {
+		return
+	}
 	c.SetHeader("Content-Type", "application/json")
 	c.Status(code)
 	encoder := json.NewEncoder(c.Writer)
 	if err := encoder.Encode(obj); err != nil {
 		panic(err)
 	}
+	c.isResponse = true
 }
 
 func (c *Context) Data(code int, data []byte) {
+	if c.isResponse {
+		return
+	}
 	c.Status(code)
 	if _, err := c.Writer.Write(data); err != nil {
 		panic(err)
 	}
+	c.isResponse = true
 }
 
 func (c *Context) HTML(code int, name string, data interface{}) {
+	if c.isResponse {
+		return
+	}
 	c.SetHeader("Content-Type", "text/html")
 	c.Status(code)
 	if err := c.server.htmlTemplates.ExecuteTemplate(c.Writer, name, data); err != nil {
 		panic(err)
 	}
+	c.isResponse = true
 }
 
 func (c *Context) Fail(code int, err string) {
