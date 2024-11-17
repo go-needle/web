@@ -7,13 +7,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
+	"time"
 )
 
 type JWT struct {
 	header    string
-	Payload   string
+	Payload   []byte
 	signature string
+}
+
+type JWTDefaultParams struct {
+	Iss string `json:"iss,omitempty"`
+	Exp int64  `json:"exp,omitempty"`
+	Sub string `json:"sub,omitempty"`
+	Aud string `json:"aud,omitempty"`
+	Nbf int64  `json:"nbf,omitempty"`
+	Iat int64  `json:"iat,omitempty"`
+	Jti string `json:"jti,omitempty"`
 }
 
 func encodeBase64(data string) string {
@@ -62,21 +74,48 @@ func parseJwt(token string, key []byte) (*JWT, error) {
 		return nil, fmt.Errorf("token verification failed")
 	}
 	dstPayload, _ := base64.RawURLEncoding.DecodeString(encodedPayload)
-	return &JWT{encodedHeader, string(dstPayload), signature}, nil
+	return &JWT{encodedHeader, dstPayload, signature}, nil
 }
 
 func JwtConfirm(key []byte, headerKey string, obj any) HandlerFunc {
+	isMap := false
+	if reflect.TypeOf(obj).Kind() == reflect.Map {
+		isMap = true
+	}
+	hasExp := false
+	if isMap {
+		mp := obj.(map[string]any)
+		if _, has := mp["exp"]; has {
+			hasExp = true
+		}
+	} else {
+		metaObj := reflect.ValueOf(obj).Elem()
+		if metaObj.FieldByName("Exp") != (reflect.Value{}) {
+			hasExp = true
+		}
+	}
 	return func(c *Context) {
 		token := c.GetHeader(headerKey)
 		jwt, err := parseJwt(token, key)
 		if err != nil {
-			c.Fail(http.StatusInternalServerError, err.Error())
-			c.Abort()
+			c.Fail(http.StatusUnauthorized, err.Error())
+			return
 		}
-		err = json.Unmarshal([]byte(jwt.Payload), &obj)
+		err = json.Unmarshal(jwt.Payload, &obj)
 		if err != nil {
 			c.Fail(http.StatusInternalServerError, err.Error())
-			c.Abort()
+			return
+		}
+		if isMap {
+			if hasExp && int64(obj.(map[string]any)["exp"].(float64)) < time.Now().Unix() {
+				c.Fail(http.StatusUnauthorized, "session expiration")
+				return
+			}
+		} else {
+			if hasExp && reflect.ValueOf(obj).Elem().FieldByName("Exp").Int() < time.Now().Unix() {
+				c.Fail(http.StatusUnauthorized, "session expiration")
+				return
+			}
 		}
 		c.SetExtra("jwt", obj)
 		c.Next()
