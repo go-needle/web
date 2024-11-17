@@ -71,10 +71,12 @@ func JwtConfirm(key []byte, headerKey string, obj any) HandlerFunc {
 		jwt, err := parseJwt(token, key)
 		if err != nil {
 			c.Fail(http.StatusInternalServerError, err.Error())
+			c.Abort()
 		}
 		err = json.Unmarshal([]byte(jwt.Payload), &obj)
 		if err != nil {
 			c.Fail(http.StatusInternalServerError, err.Error())
+			c.Abort()
 		}
 		c.SetExtra("jwt", obj)
 		c.Next()
