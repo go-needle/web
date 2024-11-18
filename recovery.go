@@ -29,7 +29,7 @@ func Recovery() HandlerFunc {
 			if err := recover(); err != nil {
 				message := fmt.Sprintf("%s", err)
 				c.Fail(http.StatusInternalServerError, "Internal Server Error")
-				log.Printf("[%d] %s %s Internal Server Error", http.StatusInternalServerError, c.Method, c.Req.RequestURI)
+				log.Printf("[%d] %s %s Internal Server Error", http.StatusInternalServerError, c.Method, c.Request.RequestURI)
 				fmt.Printf("\033[31m%s\n\n\033[0m", trace(message))
 			}
 		}()

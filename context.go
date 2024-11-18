@@ -12,8 +12,8 @@ type H map[string]any
 
 type Context struct {
 	// origin objects
-	Writer http.ResponseWriter
-	Req    *http.Request
+	Writer  http.ResponseWriter
+	Request *http.Request
 	// request info
 	Path   string
 	Method string
@@ -33,12 +33,12 @@ type Context struct {
 
 func newContext(w http.ResponseWriter, req *http.Request) *Context {
 	return &Context{
-		Path:   req.URL.Path,
-		Method: req.Method,
-		Req:    req,
-		Writer: w,
-		extras: make(map[string]any),
-		index:  -1,
+		Path:    req.URL.Path,
+		Method:  req.Method,
+		Request: req,
+		Writer:  w,
+		extras:  make(map[string]any),
+		index:   -1,
 	}
 }
 
@@ -86,19 +86,19 @@ func (c *Context) SetExtra(key string, v any) {
 }
 
 func (c *Context) GetHeader(key string) string {
-	return c.Req.Header.Get(key)
+	return c.Request.Header.Get(key)
 }
 
 func (c *Context) FormData(key string) string {
-	return c.Req.FormValue(key)
+	return c.Request.FormValue(key)
 }
 
 func (c *Context) Query(key string) string {
-	return c.Req.URL.Query().Get(key)
+	return c.Request.URL.Query().Get(key)
 }
 
 func (c *Context) BindJson(obj any) (any, error) {
-	err := decodeJSON(c.Req.Body, obj)
+	err := decodeJSON(c.Request.Body, obj)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (c *Context) Binary() ([]byte, error) {
 	var content []byte
 	var tmp = make([]byte, 128)
 	for {
-		n, err := c.Req.Body.Read(tmp)
+		n, err := c.Request.Body.Read(tmp)
 		if err == io.EOF {
 			break
 		}
@@ -122,7 +122,7 @@ func (c *Context) Binary() ([]byte, error) {
 }
 
 func (c *Context) FormFile(key string) (multipart.File, *multipart.FileHeader, error) {
-	return c.Req.FormFile(key)
+	return c.Request.FormFile(key)
 }
 
 func (c *Context) Status(code int) {

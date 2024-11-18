@@ -150,7 +150,7 @@ func (group *RouterGroup) createStaticHandler(relativePath string, fs http.FileS
 			return
 		}
 
-		fileServer.ServeHTTP(c.Writer, c.Req)
+		fileServer.ServeHTTP(c.Writer, c.Request)
 	}
 }
 
@@ -189,6 +189,12 @@ func Default() *Server {
 	return server
 }
 
+// Use is defined to add middleware to the server
+func (server *Server) Use(middlewares ...HandlerFunc) *Server {
+	server.middlewares = append(server.middlewares, middlewares...)
+	return server
+}
+
 func (server *Server) SetFuncMap(funcMap template.FuncMap) {
 	server.funcMap = funcMap
 }
@@ -218,22 +224,33 @@ func getInternalIP() (string, error) {
 	return "", fmt.Errorf("no internal IP address found, check for multiple interfaces")
 }
 
-func welcome(port string, router int) {
+func welcome(routerNum int) {
 	time.Sleep(time.Millisecond * 100)
 	fmt.Println("🪡 Welcome to use go-needle-web")
-	fmt.Println("🪡 Available router total: " + strconv.Itoa(router))
+	fmt.Println("🪡 Available router total: " + strconv.Itoa(routerNum))
 	ip, err := getInternalIP()
 	if err == nil {
 		fmt.Println("🪡 IP address: " + ip)
 	}
-	fmt.Println("🪡 The web server is listening at port " + port)
 }
 
 // Run defines the method to start a http server
 func (server *Server) Run(port int) {
 	portStr := strconv.Itoa(port)
-	go welcome(portStr, server.router.total)
+	welcome(server.router.total)
+	fmt.Println("🪡 The http server is listening at port " + portStr)
 	err := http.ListenAndServe(":"+portStr, &Engine{server})
+	if err != nil {
+		panic(err)
+	}
+}
+
+// RunTLS defines the method to start a https server
+func (server *Server) RunTLS(port int, certFile, keyFile string) {
+	portStr := strconv.Itoa(port)
+	welcome(server.router.total)
+	fmt.Println("🪡 The https server is listening at port " + portStr)
+	err := http.ListenAndServeTLS(":"+portStr, certFile, keyFile, &Engine{server})
 	if err != nil {
 		panic(err)
 	}

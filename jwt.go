@@ -70,7 +70,7 @@ func parseJwt(token string, key []byte) (*JWT, error) {
 	if err != nil {
 		return nil, fmt.Errorf("signature generation error")
 	}
-	if signature != confirmSignature {
+	if !hmac.Equal([]byte(signature), []byte(confirmSignature)) { //avoid timing attack
 		return nil, fmt.Errorf("token verification failed")
 	}
 	dstPayload, _ := base64.RawURLEncoding.DecodeString(encodedPayload)
