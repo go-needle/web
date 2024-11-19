@@ -25,7 +25,7 @@ func (f HandlerFunc) Handle(ctx *Context) {
 type Listener interface {
 	Method() string
 	Pattern() string
-	GetHandler() Handler
+	Handler() Handler
 }
 
 type GET struct{}
@@ -97,7 +97,7 @@ func (group *RouterGroup) Use(middlewares ...Handler) *RouterGroup {
 // Bind is defined to bind all listeners to the router
 func (group *RouterGroup) Bind(listeners ...Listener) {
 	for _, listener := range listeners {
-		group.REQUEST(listener.Method(), listener.Pattern(), listener.GetHandler())
+		group.REQUEST(listener.Method(), listener.Pattern(), listener.Handler())
 	}
 }
 

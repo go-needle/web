@@ -61,7 +61,7 @@ func (h *helloHandler) Handle(c *web.Context) {
 // You need to implement the web.Listener interface
 type hello struct{ web.POST }            // In this way, you will not need to implement the 'Method()'
 func (h *hello) Pattern() string         { return "/hello1" }
-func (h *hello) GetHandler() web.Handler { return &helloHandler{} }
+func (h *hello) Handler() web.Handler { return &helloHandler{} }
 
 type response struct {
 	Msg string `json:"msg"`
