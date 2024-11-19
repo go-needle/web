@@ -31,32 +31,37 @@ import (
 )
 
 // Define middleware
-func middleware1() web.HandlerFunc {
-	return func(ctx *web.Context) {
+func middleware1() web.Handler {
+	return web.HandlerFunc(func(c *web.Context) {
 		fmt.Println("test1")
-		ctx.Next()
+		c.Next()
 		fmt.Println("test4")
-	}
+	})
 }
 
 // Define middleware
-func middleware2(ctx *web.Context) {
+func middleware2(c *web.Context) {
 	fmt.Println("test2")
-	ctx.Next()
+	c.Next()
 	fmt.Println("test3")
 }
 
-// You need to implement the web.Listener interface
-type hello struct{ web.POST } // In this way, you will not need to implement the 'Method()'
-
-func (h *hello) Pattern() string { return "/hello1" }
-func (h *hello) Handle() web.HandlerFunc {
-	return func(ctx *web.Context) {
-		num := ctx.FormData("num")
-		fmt.Println(num)
-		ctx.JSON(200, web.H{"msg": "hello1"})
-	}
+// You need to implement the web.Handler interface
+type helloHandler struct {
+	cnt int
 }
+
+func (h *helloHandler) Handle(c *web.Context) {
+	num := c.FormData("num")
+	fmt.Println(num)
+	h.cnt++
+	c.JSON(200, web.H{"msg": "hello1", "cnt": h.cnt})
+}
+
+// You need to implement the web.Listener interface
+type hello struct{ web.POST }            // In this way, you will not need to implement the 'Method()'
+func (h *hello) Pattern() string         { return "/hello1" }
+func (h *hello) GetHandler() web.Handler { return &helloHandler{} }
 
 type response struct {
 	Msg string `json:"msg"`
@@ -69,14 +74,14 @@ func main() {
 		// define the group and use middleware
 		g1 := s.Group("m1").Use(middleware1())
 		{
-			g2 := g1.Group("m2").Use(middleware2)
+			g2 := g1.Group("m2").Use(web.HandlerFunc(middleware2))
 			// bind the listener to work pattern in router
 			g2.Bind(&hello{}) //  work at POST /m1/m2/hello1
 			// also could use this way to add to router
-			g2.GET("/hello2", func(ctx *web.Context) {
-				fmt.Println(ctx.Query("num"))
-				ctx.JSON(200, &response{Msg: "hello2"})
-			}) // work at GET /m1/m2/hello2
+			g2.GET("/hello2", web.HandlerFunc(func(c *web.Context) {
+				fmt.Println(c.Query("num"))
+				c.JSON(200, &response{Msg: "hello2"})
+			})) // work at GET /m1/m2/hello2
 		}
 	}
 	// listen on the port

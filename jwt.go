@@ -77,7 +77,7 @@ func parseJwt(token string, key []byte) (*JWT, error) {
 	return &JWT{encodedHeader, dstPayload, signature}, nil
 }
 
-func JwtConfirm(key []byte, headerKey string, obj any) HandlerFunc {
+func JwtConfirm(key []byte, headerKey string, obj any) Handler {
 	isMap := false
 	if reflect.TypeOf(obj).Kind() == reflect.Map {
 		isMap = true
@@ -94,7 +94,7 @@ func JwtConfirm(key []byte, headerKey string, obj any) HandlerFunc {
 			hasExp = true
 		}
 	}
-	return func(c *Context) {
+	return HandlerFunc(func(c *Context) {
 		token := c.GetHeader(headerKey)
 		jwt, err := parseJwt(token, key)
 		if err != nil {
@@ -119,5 +119,5 @@ func JwtConfirm(key []byte, headerKey string, obj any) HandlerFunc {
 		}
 		c.SetExtra("jwt", obj)
 		c.Next()
-	}
+	})
 }

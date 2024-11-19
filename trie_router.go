@@ -7,7 +7,7 @@ import (
 )
 
 type nodeR struct {
-	handle    HandlerFunc
+	handler   Handler
 	children  map[string]*nodeR
 	jumpChild *nodeR //  ':'
 	stopChild *nodeR // '*'
@@ -41,7 +41,7 @@ func newTrieTreeR() *trieTreeR {
 	return &trieTreeR{newNodeR(), make(map[int]int), 1}
 }
 
-func (t *trieTreeR) insert(parts []string, handlerFunc HandlerFunc) int {
+func (t *trieTreeR) insert(parts []string, handler Handler) int {
 	cur := t.root
 	keys := make(map[int]string)
 	height := 0
@@ -74,12 +74,12 @@ func (t *trieTreeR) insert(parts []string, handlerFunc HandlerFunc) int {
 		cur = next
 	}
 	isAdd := true
-	if cur.handle != nil {
+	if cur.handler != nil {
 		t.heightNodeCount[height]--
 		isAdd = false
 		log.Printf("[Warning] A route coverage occurred in \"/%s\"", strings.Join(parts, "/"))
 	}
-	cur.handle = handlerFunc
+	cur.handler = handler
 	cur.keys = keys
 	t.heightNodeCount[height]++
 	t.maxDenseNodeCount = max(t.maxDenseNodeCount, t.heightNodeCount[height])
@@ -124,7 +124,7 @@ func (t *trieTreeR) search(parts []string) (*nodeR, map[string]string) {
 	isStop := false
 	if len(parts) == height {
 		for _, n := range cur {
-			if n.handle != nil {
+			if n.handler != nil {
 				nd = n
 				break
 			}
@@ -133,7 +133,7 @@ func (t *trieTreeR) search(parts []string) (*nodeR, map[string]string) {
 
 	if nd == nil {
 		for i := len(stopNodes) - 1; i >= 0; i-- {
-			if stopNodes[i].handle != nil {
+			if stopNodes[i].handler != nil {
 				nd = stopNodes[i]
 				isStop = true
 				break

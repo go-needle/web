@@ -39,7 +39,7 @@ func parsePattern(pattern string) []string {
 	return parts
 }
 
-func (r *router) addRoute(method string, pattern string, handler HandlerFunc) {
+func (r *router) addRoute(method string, pattern string, handler Handler) {
 	parts := parsePattern(pattern)
 	if _, has := r.tree[method]; !has {
 		r.tree[method] = newTrieTreeR()
@@ -61,11 +61,11 @@ func (r *router) handle(c *Context) {
 
 	if n != nil {
 		c.params = params
-		c.handlers = append(c.handlers, n.handle)
+		c.handlers = append(c.handlers, n.handler)
 	} else {
-		c.handlers = append(c.handlers, func(c *Context) {
+		c.handlers = append(c.handlers, HandlerFunc(func(c *Context) {
 			c.Fail(http.StatusNotFound, fmt.Sprintf("404 NOT FOUND: %s", c.Path))
-		})
+		}))
 	}
 	c.Next()
 }

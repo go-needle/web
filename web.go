@@ -10,13 +10,22 @@ import (
 	"time"
 )
 
-// HandlerFunc defines the request handler used by web
+// Handler defines the request handler used by web
+type Handler interface {
+	Handle(*Context)
+}
+
+// HandlerFunc realizes the Handler
 type HandlerFunc func(*Context)
+
+func (f HandlerFunc) Handle(ctx *Context) {
+	f(ctx)
+}
 
 type Listener interface {
 	Method() string
 	Pattern() string
-	Handle() HandlerFunc
+	GetHandler() Handler
 }
 
 type GET struct{}
@@ -49,9 +58,9 @@ func (*HEAD) Method() string { return "HEAD" }
 
 type RouterGroup struct {
 	prefix      string
-	middlewares []HandlerFunc // support middleware
-	parent      *RouterGroup  // support nesting
-	server      *Server       // all groups share a Server instance
+	middlewares []Handler    // support middleware
+	parent      *RouterGroup // support nesting
+	server      *Server      // all groups share a Server instance
 }
 
 // Group is defined to create a new RouterGroup
@@ -74,13 +83,13 @@ func (group *RouterGroup) Group(prefix string) *RouterGroup {
 	return newGroup
 }
 
-func (group *RouterGroup) addRoute(method string, comp string, handler HandlerFunc) {
+func (group *RouterGroup) addRoute(method string, comp string, handler Handler) {
 	pattern := group.prefix + comp
 	group.server.router.addRoute(method, pattern, handler)
 }
 
 // Use is defined to add middleware to the group
-func (group *RouterGroup) Use(middlewares ...HandlerFunc) *RouterGroup {
+func (group *RouterGroup) Use(middlewares ...Handler) *RouterGroup {
 	group.middlewares = append(group.middlewares, middlewares...)
 	return group
 }
@@ -88,12 +97,12 @@ func (group *RouterGroup) Use(middlewares ...HandlerFunc) *RouterGroup {
 // Bind is defined to bind all listeners to the router
 func (group *RouterGroup) Bind(listeners ...Listener) {
 	for _, listener := range listeners {
-		group.REQUEST(listener.Method(), listener.Pattern(), listener.Handle())
+		group.REQUEST(listener.Method(), listener.Pattern(), listener.GetHandler())
 	}
 }
 
 // REQUEST defines your method to request
-func (group *RouterGroup) REQUEST(method, pattern string, handler HandlerFunc) {
+func (group *RouterGroup) REQUEST(method, pattern string, handler Handler) {
 	if len(pattern) == 1 {
 		panic("the length of pattern must > 0")
 	}
@@ -104,45 +113,45 @@ func (group *RouterGroup) REQUEST(method, pattern string, handler HandlerFunc) {
 }
 
 // GET defines the method to add GET request
-func (group *RouterGroup) GET(pattern string, handler HandlerFunc) {
+func (group *RouterGroup) GET(pattern string, handler Handler) {
 	group.REQUEST("GET", pattern, handler)
 }
 
 // POST defines the method to add POST request
-func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
+func (group *RouterGroup) POST(pattern string, handler Handler) {
 	group.REQUEST("POST", pattern, handler)
 }
 
 // PUT defines the method to add PUT request
-func (group *RouterGroup) PUT(pattern string, handler HandlerFunc) {
+func (group *RouterGroup) PUT(pattern string, handler Handler) {
 	group.REQUEST("PUT", pattern, handler)
 }
 
 // DELETE defines the method to add DELETE request
-func (group *RouterGroup) DELETE(pattern string, handler HandlerFunc) {
+func (group *RouterGroup) DELETE(pattern string, handler Handler) {
 	group.REQUEST("DELETE", pattern, handler)
 }
 
 // PATCH defines the method to add PATCH request
-func (group *RouterGroup) PATCH(pattern string, handler HandlerFunc) {
+func (group *RouterGroup) PATCH(pattern string, handler Handler) {
 	group.REQUEST("PATCH", pattern, handler)
 }
 
 // OPTIONS defines the method to add OPTIONS request
-func (group *RouterGroup) OPTIONS(pattern string, handler HandlerFunc) {
+func (group *RouterGroup) OPTIONS(pattern string, handler Handler) {
 	group.REQUEST("OPTIONS", pattern, handler)
 }
 
 // HEAD defines the method to add HEAD request
-func (group *RouterGroup) HEAD(pattern string, handler HandlerFunc) {
+func (group *RouterGroup) HEAD(pattern string, handler Handler) {
 	group.REQUEST("HEAD", pattern, handler)
 }
 
 // create static handler
-func (group *RouterGroup) createStaticHandler(relativePath string, fs http.FileSystem) HandlerFunc {
+func (group *RouterGroup) createStaticHandler(relativePath string, fs http.FileSystem) Handler {
 	absolutePath := path.Join(group.prefix, relativePath)
 	fileServer := http.StripPrefix(absolutePath, http.FileServer(fs))
-	return func(c *Context) {
+	return HandlerFunc(func(c *Context) {
 		file := c.Param("filepath")
 		// Check if file exists and/or if we have permission to access it
 		if _, err := fs.Open(file); err != nil {
@@ -151,7 +160,7 @@ func (group *RouterGroup) createStaticHandler(relativePath string, fs http.FileS
 		}
 
 		fileServer.ServeHTTP(c.Writer, c.Request)
-	}
+	})
 }
 
 // Static is defined to map local static resources
@@ -190,7 +199,7 @@ func Default() *Server {
 }
 
 // Use is defined to add middleware to the server
-func (server *Server) Use(middlewares ...HandlerFunc) *Server {
+func (server *Server) Use(middlewares ...Handler) *Server {
 	server.middlewares = append(server.middlewares, middlewares...)
 	return server
 }

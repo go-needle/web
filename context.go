@@ -23,7 +23,7 @@ type Context struct {
 	// extra info
 	extras map[string]any
 	// middlewares and route
-	handlers []HandlerFunc
+	handlers []Handler
 	index    int
 	// server pointer
 	server *Server
@@ -54,7 +54,7 @@ func decodeJSON(r io.Reader, obj any) error {
 func (c *Context) Next() {
 	c.index++
 	for ; c.index < len(c.handlers); c.index++ {
-		c.handlers[c.index](c)
+		c.handlers[c.index].Handle(c)
 	}
 }
 
@@ -183,6 +183,6 @@ func (c *Context) HTML(code int, name string, data interface{}) {
 }
 
 func (c *Context) Fail(code int, err string) {
-	c.index = len(c.handlers)
-	c.JSON(code, H{"message": err})
+	c.Abort()
+	c.String(code, err)
 }

@@ -57,9 +57,9 @@ func (t *trieTreeG) insert(prefix string, routerGroup *RouterGroup) int {
 	}
 }
 
-func (t *trieTreeG) search(prefix string) []HandlerFunc {
+func (t *trieTreeG) search(prefix string) []Handler {
 	cur := t.root
-	middleWares := make([]HandlerFunc, 0, t.maxMiddleWaresLength)
+	middleWares := make([]Handler, 0, t.maxMiddleWaresLength)
 	if cur.handle != nil {
 		middleWares = append(middleWares, cur.handle.middlewares...)
 	}

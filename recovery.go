@@ -23,8 +23,8 @@ func trace(message string) string {
 }
 
 // Recovery is a middleware which defines to prevent panic from causing HTTP service termination
-func Recovery() HandlerFunc {
-	return func(c *Context) {
+func Recovery() Handler {
+	return HandlerFunc(func(c *Context) {
 		defer func() {
 			if err := recover(); err != nil {
 				message := fmt.Sprintf("%s", err)
@@ -35,5 +35,5 @@ func Recovery() HandlerFunc {
 		}()
 
 		c.Next()
-	}
+	})
 }
