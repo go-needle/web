@@ -33,7 +33,6 @@ func Recovery() Handler {
 				fmt.Printf("\033[31m%s\n\n\033[0m", trace(message))
 			}
 		}()
-
 		c.Next()
 	})
 }

@@ -77,6 +77,7 @@ func parseJwt(token string, key []byte) (*JWT, error) {
 	return &JWT{encodedHeader, dstPayload, signature}, nil
 }
 
+// JwtConfirm is a middleware which defines to check the verification of jwt
 func JwtConfirm(key []byte, headerKey string, obj any) Handler {
 	isMap := false
 	if reflect.TypeOf(obj).Kind() == reflect.Map {
