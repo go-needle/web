@@ -46,22 +46,19 @@ func middleware2(c *web.Context) {
 	fmt.Println("test3")
 }
 
-// You need to implement the web.Handler interface
-type helloHandler struct {
-	cnt int
+// You need to implement the web.Listener interface
+type hello struct {
+	web.POST // In this way, you will not need to implement the 'Method()'
+	cnt      int
 }
 
-func (h *helloHandler) Handle(c *web.Context) {
+func (h *hello) Pattern() string { return "/hello1" }
+func (h *hello) Handle(c *web.Context) {
 	num := c.FormData("num")
 	fmt.Println(num)
 	h.cnt++
 	c.JSON(200, web.H{"msg": "hello1", "cnt": h.cnt})
 }
-
-// You need to implement the web.Listener interface
-type hello struct{ web.POST }            // In this way, you will not need to implement the 'Method()'
-func (h *hello) Pattern() string         { return "/hello1" }
-func (h *hello) Handler() web.Handler { return &helloHandler{} }
 
 type response struct {
 	Msg string `json:"msg"`
@@ -87,4 +84,5 @@ func main() {
 	// listen on the port
 	s.Run(9999)
 }
+
 ```
