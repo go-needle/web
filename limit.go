@@ -49,7 +49,7 @@ func TrafficLimit(flowTotal, rate int) Handler {
 		case <-ch:
 			c.Next()
 		default:
-			c.Fail(http.StatusForbidden, "flow out of limit")
+			c.Fail(http.StatusForbidden, "traffic congestion")
 			return
 		}
 	})

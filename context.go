@@ -159,10 +159,11 @@ func (c *Context) JSON(code int, obj any) {
 	c.isResponse = true
 }
 
-func (c *Context) Data(code int, data []byte) {
+func (c *Context) Data(code int, contentType string, data []byte) {
 	if c.isResponse {
 		return
 	}
+	c.SetHeader("Content-Type", contentType)
 	c.Status(code)
 	if _, err := c.Writer.Write(data); err != nil {
 		panic(err)
