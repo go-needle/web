@@ -8,7 +8,7 @@ import (
 )
 
 // RateLimit is a middleware which limits the frequency of access to the same IP address
-func RateLimit(rate int) Handler {
+func RateLimit(rate time.Duration) Handler {
 	var blackList sync.Map
 	return HandlerFunc(func(c *Context) {
 		remoteAddr := c.Request.RemoteAddr
@@ -19,7 +19,7 @@ func RateLimit(rate int) Handler {
 		if _, ok := blackList.Load(remoteAddr); !ok {
 			blackList.Store(remoteAddr, struct{}{})
 			go func() {
-				time.Sleep(time.Duration(rate) * time.Millisecond)
+				time.Sleep(rate)
 				blackList.Delete(remoteAddr)
 			}()
 		} else {
@@ -31,14 +31,14 @@ func RateLimit(rate int) Handler {
 }
 
 // TrafficLimit is a middleware which uses token bucket algorithm for traffic restriction
-func TrafficLimit(flowTotal, rate int) Handler {
+func TrafficLimit(flowTotal int, rate time.Duration) Handler {
 	chg := make(chan struct{}, flowTotal)
 	go func(ch chan<- struct{}) {
 		for i := 0; i < flowTotal; i++ {
 			ch <- struct{}{}
 		}
 		for {
-			time.Sleep(time.Duration(rate) * time.Millisecond)
+			time.Sleep(rate)
 			ch <- struct{}{}
 		}
 	}(chg)
