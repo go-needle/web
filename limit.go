@@ -31,10 +31,10 @@ func RateLimit(rate time.Duration) Handler {
 }
 
 // TrafficLimit is a middleware which uses token bucket algorithm for traffic restriction
-func TrafficLimit(flowTotal int, rate time.Duration) Handler {
-	chg := make(chan struct{}, flowTotal)
+func TrafficLimit(tokenTotal int, rate time.Duration) Handler {
+	chg := make(chan struct{}, tokenTotal)
 	go func(ch chan<- struct{}) {
-		for i := 0; i < flowTotal; i++ {
+		for i := 0; i < tokenTotal; i++ {
 			ch <- struct{}{}
 		}
 		for {
