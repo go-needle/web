@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 )
@@ -11,10 +10,10 @@ import (
 func RateLimit(rate time.Duration) Handler {
 	var blackList sync.Map
 	return HandlerFunc(func(c *Context) {
-		remoteAddr := c.Request.RemoteAddr
-		forwardedFor := c.GetHeader("X-Forwarded-For")
-		if forwardedFor != "" {
-			remoteAddr = strings.Split(forwardedFor, ", ")[0]
+		remoteAddr := c.ClientIp()
+		if remoteAddr == "" {
+			c.Fail(http.StatusForbidden, "can not get client ip")
+			return
 		}
 		if _, ok := blackList.Load(remoteAddr); !ok {
 			blackList.Store(remoteAddr, struct{}{})

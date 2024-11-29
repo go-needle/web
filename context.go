@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net"
 	"net/http"
+	"strings"
 )
 
 type H map[string]any
@@ -87,6 +89,15 @@ func (c *Context) SetExtra(key string, v any) {
 
 func (c *Context) GetHeader(key string) string {
 	return c.Request.Header.Get(key)
+}
+
+func (c *Context)  ClientIp() string{
+	remoteAddr := c.Request.RemoteAddr
+	forwardedFor := c.GetHeader("X-Forwarded-For")
+	if forwardedFor != "" {
+		remoteAddr = strings.Split(forwardedFor, ",")[0]
+	}
+	return net.ParseIP(remoteAddr).String()
 }
 
 func (c *Context) FormData(key string) string {
