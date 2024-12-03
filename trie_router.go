@@ -2,7 +2,6 @@ package web
 
 import (
 	"fmt"
-	"log"
 	"strings"
 )
 
@@ -77,7 +76,7 @@ func (t *trieTreeR) insert(parts []string, handler Handler) int {
 	if cur.handler != nil {
 		t.heightNodeCount[height]--
 		isAdd = false
-		log.Printf("[Warning] A route coverage occurred in \"/%s\"", strings.Join(parts, "/"))
+		Log.Warnf("A route coverage occurred in \"/%s\"", strings.Join(parts, "/"))
 	}
 	cur.handler = handler
 	cur.keys = keys

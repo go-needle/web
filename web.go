@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"github.com/go-needle/log"
 	"html/template"
 	"net"
 	"net/http"
@@ -55,6 +56,8 @@ func (*OPTIONS) Method() string { return "OPTIONS" }
 type HEAD struct{}
 
 func (*HEAD) Method() string { return "HEAD" }
+
+var Log = log.New()
 
 type RouterGroup struct {
 	prefix      string

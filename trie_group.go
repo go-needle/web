@@ -1,9 +1,5 @@
 package web
 
-import (
-	"log"
-)
-
 type nodeG struct {
 	handle   *RouterGroup
 	children map[byte]*nodeG
@@ -46,7 +42,7 @@ func (t *trieTreeG) insert(prefix string, routerGroup *RouterGroup) int {
 	isAdd := true
 	if cur.handle != nil {
 		isAdd = false
-		log.Printf("[Warning] A group coverage occurred in \"/%s\"", prefix)
+		Log.Warnf("A group coverage occurred in \"/%s\"", prefix)
 	}
 	cur.handle = routerGroup
 	t.maxMiddleWaresLength = max(t.maxMiddleWaresLength, middleWaresLength+len(cur.handle.middlewares)>>1)
