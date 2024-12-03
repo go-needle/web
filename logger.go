@@ -1,7 +1,7 @@
 package web
 
 import (
-	"log"
+	"github.com/go-needle/log"
 	"time"
 )
 
@@ -13,6 +13,6 @@ func Logger() Handler {
 		// Process request
 		c.Next()
 		// Calculate resolution time
-		log.Printf("[%d] %s %s in %v", c.StatusCode, c.Method, c.Request.RequestURI, time.Since(t))
+		log.Infof("[%d] %s %s in %v", c.StatusCode, c.Method, c.Request.RequestURI, time.Since(t))
 	})
 }
