@@ -2,7 +2,7 @@ package web
 
 import (
 	"fmt"
-	"github.com/go-needle/log"
+	"github.com/go-needle/web/log"
 	"html/template"
 	"net"
 	"net/http"
@@ -56,8 +56,6 @@ func (*OPTIONS) Method() string { return "OPTIONS" }
 type HEAD struct{}
 
 func (*HEAD) Method() string { return "HEAD" }
-
-var Log = log.New()
 
 type RouterGroup struct {
 	prefix      string
@@ -238,11 +236,11 @@ func getInternalIP() (string, error) {
 
 func welcome(routerNum int) {
 	time.Sleep(time.Millisecond * 100)
-	fmt.Println("🪡 Welcome to use go-needle-web")
-	fmt.Println("🪡 Available router total: " + strconv.Itoa(routerNum))
+	log.Info("🪡 Welcome to use go-needle-web")
+	log.Info("🪡 Available router total: " + strconv.Itoa(routerNum))
 	ip, err := getInternalIP()
 	if err == nil {
-		fmt.Println("🪡 IP address: " + ip)
+		log.Info("🪡 IP address: " + ip)
 	}
 }
 
@@ -250,22 +248,16 @@ func welcome(routerNum int) {
 func (server *Server) Run(port int) {
 	portStr := strconv.Itoa(port)
 	welcome(server.router.total)
-	fmt.Println("🪡 The http server is listening at port " + portStr)
-	err := http.ListenAndServe(":"+portStr, &Engine{server})
-	if err != nil {
-		panic(err)
-	}
+	log.Info("🪡 The http server is listening at port " + portStr)
+	log.Fatal(http.ListenAndServe(":"+portStr, &Engine{server}))
 }
 
 // RunTLS defines the method to start a https server
 func (server *Server) RunTLS(port int, certFile, keyFile string) {
 	portStr := strconv.Itoa(port)
 	welcome(server.router.total)
-	fmt.Println("🪡 The https server is listening at port " + portStr)
-	err := http.ListenAndServeTLS(":"+portStr, certFile, keyFile, &Engine{server})
-	if err != nil {
-		panic(err)
-	}
+	log.Info("🪡 The https server is listening at port " + portStr)
+	log.Fatal(http.ListenAndServeTLS(":"+portStr, certFile, keyFile, &Engine{server}))
 }
 
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {

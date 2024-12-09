@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"github.com/go-needle/web/log"
 	"strings"
 )
 
@@ -48,7 +49,7 @@ func (t *trieTreeR) insert(parts []string, handler Handler) int {
 		next := cur.matchChild(part)
 		height++
 		if (part[0] == ':' || part[0] == '*') && len(part) == 1 {
-			panic(fmt.Errorf("the routing path \"%s\" cannot contain nodes with only \"*\" or \":\"", strings.Join(parts, "/")))
+			log.Fatal(fmt.Errorf("the routing path \"%s\" cannot contain nodes with only \"*\" or \":\"", strings.Join(parts, "/")))
 		}
 		if part[0] == '*' {
 			keys[i] = part[1:]
@@ -76,7 +77,7 @@ func (t *trieTreeR) insert(parts []string, handler Handler) int {
 	if cur.handler != nil {
 		t.heightNodeCount[height]--
 		isAdd = false
-		Log.Warnf("A route coverage occurred in \"/%s\"", strings.Join(parts, "/"))
+		log.Warnf("A route coverage occurred in \"/%s\"", strings.Join(parts, "/"))
 	}
 	cur.handler = handler
 	cur.keys = keys
